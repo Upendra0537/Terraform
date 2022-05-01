@@ -1,0 +1,72 @@
+Terraform explained in 15 mins | Terraform Tutorial for Beginners
+https://www.youtube.com/watch?v=l5k1ai_GBDE
+
+Feature
+- Opensource
+- Declarative Language - specify the final stage of how the infrastructure should look like (no need specify the order or network settings)
+- Provisioning Infrastructure
+
+Terraform Architecture
+
+- 2 input sources
+	a) TF-Config - which contains the final state of the infrastructure - desired state
+	b) State - current infrastructure information - Current State
+- CORE
+	- PLAN -  Take config and state  - creates a plan on how to reach the desired states(doesnt go and creates the infra at this point
+	- APPLY - take the Plan and executes in a specific order 
+- PROVIDERS
+	- intracts with multiple providers on which the infrastructure is created - AWS/GCP/AZURE
+
+
+Sample Config file
+
+provider "aws" {
+	region = "us-east-1"
+}
+
+resource "aws_vpc" "example_VPC" {
+	cidr_block = "10.0.0.0/16"
+}
+
+Commands
+ - refresh - to update the current state from provider
+ - plan - what actions to be taken to reach the desired state as per config file
+ - apply - executes the Plan
+ - destroy - to remove the infrastructure
+
+-------------------------------------------------------------------------------------
+
+Youtube: https://www.youtube.com/watch?v=SLB_c_ayRMo
+Terraform Course - Automate your AWS cloud infrastructure
+
+Infrastructure as Code
+
+Templates:
+
+provider <providername> {
+	<key> = <value>
+}
+
+resource "<provider>_<resource>" "<<resource_name>>" {
+	<key> = <value>
+}
+
+output <<output name>> {
+ value = <provider>_<resource>.<<resource_name>>.<<specific parameter>>    - prints out the specific parameter values while executing
+}
+
+variable "variable name"{
+description = <<description >>
+default = <<default value>>
+type = <<type>>
+}
+
+- got any resources information simply google "terraform aws gateway"
+- upon running the apply command, terraform creates a state file which contains the complete details of the resources created
+- terraform config file should end with .tf
+- variables must end with .tfvars
+
+Few other commands
+- terraform state list - list the resources in the current state
+- terraform state show <<resource name>> - give details of the specific resource
+- terraform  destroy -target <provider>_<resource>.<<resource_name>> - to delete very specific resource in a terraform
