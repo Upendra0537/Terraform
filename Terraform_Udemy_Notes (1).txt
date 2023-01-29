@@ -1,0 +1,213 @@
+Udemy Course: HashiCorp Certified: Terraform Associate 2023
+
+HCL - HashiCorp Configuration Language
+
+Feature
+- Opensource
+- Declarative Language - specify the final stage of how the infrastructure should look like (no need specify the order or network settings)
+- Provisioning Infrastructure
+
+Terraform Architecture
+
+- 2 input sources
+	a) TF-Config - which contains the final state of the infrastructure - desired state  
+	b) State - current infrastructure information - Current State - terraform.tfstate
+
+
+Sample Config file
+
+provider "aws" {
+	region = "us-east-1"
+}
+
+resource "aws_vpc" "example_VPC" {
+	cidr_block = "10.0.0.0/16"
+}
+
+Commands
+ - init - to get the required provider details
+ - refresh - to update the current state to the state file
+ - plan - what actions to be taken to reach the desired state as per config file -  it runs the validate first
+ - apply - Creates the plan, asks for a confirmation and executes the Plan
+ - destroy - to remove the infrastructure
+
+
+Templates:
+
+terraform {
+     required_version = "<1.24"
+     required_provider {
+        aws = "<1.2"
+     }
+}
+
+provider <providername> {
+	<key> = <value>
+}
+
+resource "<provider>_<resource>" "<<resource_name>>" {
+	<key> = <value>
+}
+
+output <<output name>> {
+ value = <provider>_<resource>.<<resource_name>>.<<specific parameter>>    - prints out the specific parameter values while executing
+}
+
+data "<data source>" "<datasource name>"{
+key = value                               // this will be used to filter the datasource
+
+}
+
+can be referenced as data.<datasource>.<datasourcename>
+
+variables.tf or terraform.tfvars
+************
+variable "variable_name" {
+description = <<description >>
+default = <<default value>>
+type = <<type>>                   // string/list/map/number
+}
+
+terraform plan -var="instancetype=t2.micro"
+terraform plan -var-file="custom.tfvars"
+
+To save terraform plan and use it for later
+terraform plan -out="filename"
+terraform apply "filename"
+
+- got any resources information simply google "terraform aws gateway"
+- upon running the apply command, terraform creates a state file which contains the complete details of the resources created
+- terraform config file should end with .tf
+- variables must end with .tfvars
+
+Few other commands
+- terraform  destroy -target <provider>_<resource>.<<resource_name>> - to delete very specific resource in a terraform
+- terraform taint "resource name"  -  apply a status of tint so that this specific resource can be recreated on the next apply, only state file changes not the resources
+- terraform untaint ""resource name" -  to undo tint version
+- terraform apply -replace="resource name"" - taint is depricated and replace is used
+- terraform fmt  - to rewrite the terraform file in canonical form
+- terraform validate - for syntax check, unsupported arguments, undeclared variables
+- terraform graph  - to give a representation and dependency into references - creates a dot file
+- terraform output -  to get the details of the output  -  even state file will have the values
+- terraform plan -target=ec2 -  to only generate the plan for ec2 resource - help to reduce the API calls to the provider
+- terraform plan -refresh=false - to avoid refresh
+
+terraform backend
+- contains the terraform state file (stored in a secure place)
+terraform.tfstate.lock.info - which contains the information on who has done the state file locking 
+force-unlock - used for unlock the terraform state file 
+
+generally 
+S3 backend for storing the state file
+DynamoDB  -  will be store the information about the state file lock info
+
+terraform.tfstate.backup -  is created automatically when we run a terraform destroy. this can be used to create restore the resources if required.
+to restore, change the backup file name to terraform.tfstate and run the terraform apply command to ge the resources created 
+
+terraform meta commands	- need to created inside a resource block
+- depends_on = [ "<provider>_<resource>"."<<resource_name>>", "<provider>_<resource>"."<<resource_name>>"]
+	- will create a dependecy to for gettign these resources created first before other resources
+- count -  to create the resources x number of times
+- count.index -  to specify the index when count is used  name="loadbalancer.${count.index}"
+- for_each / Dynamic block
+	- to loop through the list and for resource creationg
+	resource "azurerm_resource_group" "myrg"{
+		for_each = {
+			dev1 = "eastus"
+			dev2 = "westus"
+		"
+		name = each.key
+		location = each.value
+- lifecycle block
+	- flags used for specify details
+		- create_before_destroy =  true
+		- prevent_destroy = false
+
+- Terraform doesnot support the user defined functions 
+- terraform console is used test the terraform functions
+
+Terraform Debugging
+- TF_LOG =  TRACE/DEBUG/INFO/WARN/ERROR
+- TF_LOG_FILE = "<<File path>>"
+
+Terraform functions
+- min/max
+- zipmap(['a','b'],['1','2']) => {a=1,b=2}
+- lookup
+- toset -  to remove the duplicates in a list
+
+Provisioners -  should be declared inside the resource
+------------
+Provisioner "Local-exec"
+- used to run the commands on the local server - where Terraform is running
+
+Provisioner "Remote-exec"
+- Need a connection block to connect to the remote system
+- used to run commands on the resource which is created 
+
+Creation-time Provisioner - if the provisioner fails the resource will be marked tainted
+Destroy-time provisioner => when = delete
+
+on_failure =  continue / fail   - flag to specify the treatement based on creation-time/destroy-time provisioner
+
+Null Resource
+-------------
+triggers - will trigger the provisioner in the null_resource when there is a change in the trigger parameter
+
+depends-on="<provider>_<resource>"."<<resource_name>>"  // to create dependecy between resources
+
+module
+-------
+- used to make reusable code. keep the repeated resource block in the source location and use it
+- to override the values in the modules use variables in the reusable code
+- output of the module can be used by specifing module.<moudle name>.<output variable>
+
+module "<<module name>>"{
+source: <source location>
+}
+
+Workspace
+---------
+- used seperate different workspaces (similar to namespaces)
+- we can use terraform lookup function to map between workspace and its dependent parameter
+- terraform.tfstate.d  -  folder where the workspaces exist which contains the state files for each workspaces
+
+- terraform workspaces new dev    // to create the dev workspace 
+- terraform workspace show  //current workspace
+- terraform workspace list    // workspace list 
+- terraform workspace select dev   // move to dev workspace
+
+State
+-------
+- terraform state list - list the resources in the current state
+- terraform state show <<resource name>> - give details of the specific resource
+- terraform state mv <<old resource name>> <<new resource name>>  - used to rename the resources without actually destroying and recreating it. So this command just updates the state file without acting on the resources as the resource name is local to terraform
+- terraform state pull  - give the state file details in output  from a remote source
+- terraform state push - to push state file from local to remote
+- terraform state rm <<resource name>>  -  removes the resource from state file but not the resource on a provider
+
+- terraform_remote_state - is used to connect to the another project state file to get the output details.
+  the second project should have the terraform_remote_state defined with the remote location of the first project state file
+   data.terraform_remote_state.<statefilename>.output.<variable>
+
+- terraform import <resource>.<resourcename> <resource ID>
+ - used to create the terraform state file for the resources which are manually created
+ - Need to create the .tf files for the resources which all the specific details. 
+ - Run the terraform init and terraform import to get the state file populated with the info of Manual resource
+
+- terraform doesnot allow two same provider configuration. we can define alias to define same providers and use provider="provider.alias"
+- "profile" can be used in the provider to launch resources to different accounts 
+
+-"sensitive" parameter to not to output sensitive information
+
+Terraform cloud
+--------------
+- UI for the terraform flow 
+- Cost Estimation to know the resource cost 
+- all developers will be on the same terraform version
+- can setup rules and approvals for terraform commands
+- integrates with github
+- can setup sentinal policies(paid feature)
+	- hard-mandatory
+	- soft-mandatory
+	- advisory
